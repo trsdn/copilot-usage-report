@@ -1,5 +1,12 @@
 # copilot-usage-report
 
+[![License: MIT](https://img.shields.io/badge/License-MIT-22c55e.svg?style=flat-square)](LICENSE)
+[![Python 3.8+](https://img.shields.io/badge/Python-3.8%2B-3776AB.svg?style=flat-square&logo=python&logoColor=white)](https://www.python.org/)
+![Dependencies: none](https://img.shields.io/badge/dependencies-none-22c55e.svg?style=flat-square)
+![Platform: macOS | Linux](https://img.shields.io/badge/platform-macOS%20%7C%20Linux-555.svg?style=flat-square)
+[![Copilot CLI skill](https://img.shields.io/badge/Copilot%20CLI-skill-000.svg?style=flat-square&logo=githubcopilot&logoColor=white)](https://docs.github.com/copilot/concepts/agents/about-copilot-cli)
+![Output: Markdown · JSON · HTML](https://img.shields.io/badge/output-Markdown%20%C2%B7%20JSON%20%C2%B7%20HTML-7c3aed.svg?style=flat-square)
+
 A [GitHub Copilot CLI](https://docs.github.com/copilot/concepts/agents/about-copilot-cli)
 **skill** that generates a token-and-cost usage report from your local Copilot CLI
 telemetry, broken down per model and converted to **GitHub AI Units / AI Credits / USD**.
@@ -11,7 +18,17 @@ plain standalone CLI and can emit **JSON** or a **self-contained HTML report** (
 > **Privacy:** everything runs locally against `~/.copilot/logs/`. No data leaves your
 > machine, nothing is uploaded.
 
-## Example
+## HTML report (`--html`)
+
+A self-contained, offline report — summary cards plus a per-model table with spend bars
+(dark-mode aware, inline CSS, no external assets):
+
+![Sample HTML usage report](docs/sample-report.png)
+
+> Sample shown with synthetic data. Generate your own with
+> `… --html --out usage.html` (see [Standalone CLI usage](#standalone-cli-usage)).
+
+## Example (markdown, default)
 
 ```bash
 python3 copilot-usage-report/scripts/usage_report.py 24h
@@ -107,11 +124,22 @@ from telemetry is the source of truth. Update rates from the official page:
 copilot-usage-report/
 ├── README.md
 ├── LICENSE
-└── copilot-usage-report/        # the drop-in skill (copy into .copilot/skills/)
-    ├── SKILL.md                 # skill manifest + agent instructions
+├── docs/
+│   ├── sample-report.html      # example HTML report (synthetic data)
+│   └── sample-report.png       # screenshot used in this README
+└── copilot-usage-report/       # the drop-in skill (copy into .copilot/skills/)
+    ├── SKILL.md                # skill manifest + agent instructions
     └── scripts/
-        └── usage_report.py      # the parser / standalone CLI
+        └── usage_report.py     # the parser / standalone CLI
 ```
+
+## Contributing
+
+Issues and PRs welcome. The script is plain Python 3 standard library — no build, no
+dependencies. When a new model appears, add its per-1M-token rates to `RATES` in
+`usage_report.py` from the
+[official pricing page](https://docs.github.com/en/copilot/reference/copilot-billing/models-and-pricing)
+(AIU from telemetry remains authoritative; the rate card is only a cross-check).
 
 ## License
 

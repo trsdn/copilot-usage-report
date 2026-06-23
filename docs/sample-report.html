@@ -1,0 +1,80 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Copilot CLI usage report</title>
+<style>
+:root{--bg:#f6f7f9;--fg:#1c2530;--mut:#5b6675;--line:#e3e7ec;--card:#fff;--accent:#2563eb;--accent2:#7c3aed}
+*{box-sizing:border-box}
+body{margin:0;background:var(--bg);color:var(--fg);font:15px/1.5 -apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,Helvetica,Arial,sans-serif}
+.wrap{max-width:1080px;margin:0 auto;padding:32px 20px 56px}
+header h1{margin:0 0 4px;font-size:24px}
+.meta{color:var(--mut);font-size:13px;margin:0}
+.meta code{background:rgba(127,127,127,.14);padding:1px 5px;border-radius:5px;font-size:12px}
+.cards{display:grid;grid-template-columns:repeat(auto-fit,minmax(200px,1fr));gap:14px;margin:22px 0}
+.card{background:var(--card);border:1px solid var(--line);border-radius:12px;padding:16px}
+.card .k{color:var(--mut);font-size:12px;text-transform:uppercase;letter-spacing:.04em}
+.card .v{font-size:26px;font-weight:700;margin:6px 0 2px}
+.card .v.top{font-size:18px;word-break:break-word}
+.card .s{color:var(--mut);font-size:12px}
+.card.hero{background:linear-gradient(135deg,var(--accent),var(--accent2));border:0;color:#fff}
+.card.hero .k,.card.hero .s{color:rgba(255,255,255,.85)}
+table{width:100%;border-collapse:collapse;background:var(--card);border:1px solid var(--line);border-radius:12px;overflow:hidden;font-size:13px}
+th,td{padding:10px 12px;text-align:left;border-bottom:1px solid var(--line)}
+th{background:#fafbfc;font-size:11px;text-transform:uppercase;letter-spacing:.04em;color:var(--mut)}
+th.n,td.n{text-align:right;font-variant-numeric:tabular-nums}
+td.usd{font-weight:600}
+td.model{position:relative;font-weight:600;min-width:180px}
+td.model .bar{display:block;height:4px;margin-top:6px;width:var(--w);min-width:2px;background:linear-gradient(90deg,var(--accent),var(--accent2));border-radius:3px}
+tr.total td{font-weight:700;background:#fafbfc;border-bottom:0}
+td.empty{text-align:center;color:var(--mut);padding:28px}
+footer{color:var(--mut);font-size:12px;margin-top:18px}
+@media(prefers-color-scheme:dark){:root{--bg:#0f1419;--fg:#e6e9ee;--mut:#9aa4b2;--line:#222a33;--card:#161c23}th,tr.total td{background:#12181f}.card .v{color:#fff}}
+</style>
+</head>
+<body>
+<div class="wrap">
+<header>
+<h1>Copilot CLI usage report</h1>
+<p class="meta">Window: 2026-06-20 00:00 → 2026-06-21 00:00 UTC &middot; 1 AI Unit = 1 GitHub AI credit = $0.01 USD (from telemetry <code>total_nano_aiu</code>)</p>
+</header>
+
+      <div class="cards">
+        <div class="card hero">
+          <div class="k">Total cost</div>
+          <div class="v">$116.18</div>
+          <div class="s">11,618.00 AI Units</div>
+        </div>
+        <div class="card">
+          <div class="k">Calls</div>
+          <div class="v">623</div>
+          <div class="s">across 6 models</div>
+        </div>
+        <div class="card">
+          <div class="k">Cache-read share</div>
+          <div class="v">88.6%</div>
+          <div class="s">58,259,930 of 65,719,947 input</div>
+        </div>
+        <div class="card">
+          <div class="k">Top model</div>
+          <div class="v top">claude-opus-4.8</div>
+          <div class="s">$82.00 &middot; 71% of spend</div>
+        </div>
+      </div>
+<table>
+<thead><tr><th>Model</th><th class='n'>Calls</th><th class='n'>Input</th><th class='n'>Cache-read</th><th class='n'>Cache-write</th><th class='n'>Output</th><th class='n'>Reasoning</th><th class='n'>AI Units</th><th class='n'>USD</th></tr></thead>
+<tbody>
+<tr><td class='model'>claude-opus-4.8<span class='bar' style='--w:70.6%'></span></td><td class='n'>320</td><td class='n'>40,000,000</td><td class='n'>36,000,000</td><td class='n'>2,499,840</td><td class='n'>380,160</td><td class='n'>41,920</td><td class='n'>8,200.00</td><td class='n usd'>$82.00</td></tr>
+<tr><td class='model'>claude-sonnet-4.6<span class='bar' style='--w:16.4%'></span></td><td class='n'>140</td><td class='n'>11,999,960</td><td class='n'>10,999,940</td><td class='n'>600,040</td><td class='n'>149,940</td><td class='n'>18,060</td><td class='n'>1,900.00</td><td class='n usd'>$19.00</td></tr>
+<tr><td class='model'>gpt-5.5<span class='bar' style='--w:7.7%'></span></td><td class='n'>60</td><td class='n'>6,000,000</td><td class='n'>4,999,980</td><td class='n'>0</td><td class='n'>70,020</td><td class='n'>12,000</td><td class='n'>900.00</td><td class='n usd'>$9.00</td></tr>
+<tr><td class='model'>gpt-5.4<span class='bar' style='--w:3.5%'></span></td><td class='n'>45</td><td class='n'>4,199,985</td><td class='n'>3,500,010</td><td class='n'>0</td><td class='n'>52,020</td><td class='n'>9,000</td><td class='n'>410.00</td><td class='n usd'>$4.10</td></tr>
+<tr><td class='model'>gemini-3.1-pro-preview<span class='bar' style='--w:1.7%'></span></td><td class='n'>40</td><td class='n'>3,000,000</td><td class='n'>2,400,000</td><td class='n'>0</td><td class='n'>9,000</td><td class='n'>7,000</td><td class='n'>200.00</td><td class='n usd'>$2.00</td></tr>
+<tr><td class='model'>gpt-5-mini<span class='bar' style='--w:0.1%'></span></td><td class='n'>18</td><td class='n'>520,002</td><td class='n'>360,000</td><td class='n'>0</td><td class='n'>14,994</td><td class='n'>5,004</td><td class='n'>8.00</td><td class='n usd'>$0.08</td></tr>
+<tr class='total'><td>TOTAL</td><td class='n'>623</td><td class='n'>65,719,947</td><td class='n'>58,259,930</td><td class='n'>3,099,880</td><td class='n'>676,134</td><td class='n'>92,984</td><td class='n'>11,618.00</td><td class='n usd'>$116.18</td></tr>
+</tbody>
+</table>
+<footer>Generated 2026-06-23 07:06 UTC &middot; self-contained &amp; offline. AI Units from telemetry are authoritative; rate-card USD is a cross-check only.</footer>
+</div>
+</body>
+</html>
