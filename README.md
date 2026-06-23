@@ -1,5 +1,6 @@
 # copilot-usage-report
 
+[![CI](https://github.com/trsdn/copilot-usage-report/actions/workflows/ci.yml/badge.svg)](https://github.com/trsdn/copilot-usage-report/actions/workflows/ci.yml)
 [![License: MIT](https://img.shields.io/badge/License-MIT-22c55e.svg?style=flat-square)](LICENSE)
 [![Python 3.8+](https://img.shields.io/badge/Python-3.8%2B-3776AB.svg?style=flat-square&logo=python&logoColor=white)](https://www.python.org/)
 ![Dependencies: none](https://img.shields.io/badge/dependencies-none-22c55e.svg?style=flat-square)
@@ -124,6 +125,9 @@ from telemetry is the source of truth. Update rates from the official page:
 copilot-usage-report/
 ├── README.md
 ├── LICENSE
+├── .github/workflows/ci.yml    # smoke test on Python 3.8 / 3.10 / 3.12
+├── tests/
+│   └── smoke.py                # dependency-free markdown/JSON/HTML smoke test
 ├── docs/
 │   ├── sample-report.html      # example HTML report (synthetic data)
 │   └── sample-report.png       # screenshot used in this README
@@ -136,7 +140,13 @@ copilot-usage-report/
 ## Contributing
 
 Issues and PRs welcome. The script is plain Python 3 standard library — no build, no
-dependencies. When a new model appears, add its per-1M-token rates to `RATES` in
+dependencies. Run the smoke test before sending a PR:
+
+```bash
+python3 tests/smoke.py
+```
+
+When a new model appears, add its per-1M-token rates to `RATES` in
 `usage_report.py` from the
 [official pricing page](https://docs.github.com/en/copilot/reference/copilot-billing/models-and-pricing)
 (AIU from telemetry remains authoritative; the rate card is only a cross-check).
