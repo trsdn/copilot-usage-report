@@ -49,8 +49,10 @@ python3 .copilot/skills/copilot-usage-report/scripts/usage_report.py <TIMEFRAME>
 - `today` or `yesterday`.
 - Explicit window: `--from 2026-06-19T00:00:00 --to 2026-06-20T00:00:00` (ISO, UTC).
 
-Other flags: `--json` for machine-readable output, `--logs DIR` to point at a different
-log directory (default `~/.copilot/logs`).
+Other flags: `--json` for machine-readable output, `--html` for a self-contained
+offline HTML report (summary cards + per-model table with spend bars), `--out FILE`
+to write the report to a file instead of stdout, and `--logs DIR` to point at a
+different log directory (default `~/.copilot/logs`).
 
 Examples:
 
@@ -58,14 +60,18 @@ Examples:
 python3 .copilot/skills/copilot-usage-report/scripts/usage_report.py 48h
 python3 .copilot/skills/copilot-usage-report/scripts/usage_report.py 7d
 python3 .copilot/skills/copilot-usage-report/scripts/usage_report.py today
+python3 .copilot/skills/copilot-usage-report/scripts/usage_report.py 7d --html --out usage.html
 python3 .copilot/skills/copilot-usage-report/scripts/usage_report.py --from 2026-06-01T00:00:00 --to 2026-06-08T00:00:00 --json
 ```
 
 ## Output
 
-A markdown table broken down per model — calls, input, cache-read, cache-write, output,
-reasoning tokens, AI Units, and USD — plus a TOTAL row and a short summary (total cost,
-cache-read share of input, top-spend model). Present this table to the user verbatim.
+By default a markdown table broken down per model — calls, input, cache-read,
+cache-write, output, reasoning tokens, AI Units, and USD — plus a TOTAL row and a
+short summary (total cost, cache-read share of input, top-spend model). Present this
+table to the user verbatim. `--html` instead emits a self-contained, offline HTML
+report (summary cards + the same per-model table with a spend bar per model); pair
+it with `--out usage.html` and tell the user where it was written.
 
 ## Workflow for the agent
 

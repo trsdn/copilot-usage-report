@@ -6,7 +6,7 @@ telemetry, broken down per model and converted to **GitHub AI Units / AI Credits
 
 Ask the agent something like *"how many tokens / AI credits did I use in the last 48h?"*
 and it runs the bundled parser and presents a markdown table. The script also works as a
-plain standalone CLI.
+plain standalone CLI and can emit **JSON** or a **self-contained HTML report** (`--html`).
 
 > **Privacy:** everything runs locally against `~/.copilot/logs/`. No data leaves your
 > machine, nothing is uploaded.
@@ -70,11 +70,15 @@ python3 copilot-usage-report/scripts/usage_report.py <TIMEFRAME>
 Other flags:
 
 - `--json` — machine-readable output instead of the markdown table.
+- `--html` — a **self-contained, offline** HTML report (summary cards + per-model
+  table with spend bars; inline CSS, no external assets).
+- `--out FILE` — write the report to a file instead of stdout (works with any format).
 - `--logs DIR` — point at a different log directory (default `~/.copilot/logs`).
 
 ```bash
 python3 copilot-usage-report/scripts/usage_report.py 7d
 python3 copilot-usage-report/scripts/usage_report.py today
+python3 copilot-usage-report/scripts/usage_report.py 7d --html --out usage.html
 python3 copilot-usage-report/scripts/usage_report.py --from 2026-06-01T00:00:00 --to 2026-06-08T00:00:00 --json
 ```
 

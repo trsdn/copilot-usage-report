@@ -11,7 +11,7 @@ is GitHub's own billed amount, so it is used as the authoritative cost and
 stays correct even for models not in the local rate card below.
 
 Usage:
-  usage_report.py [TIMEFRAME] [--from ISO] [--to ISO] [--logs DIR] [--json]
+  usage_report.py [TIMEFRAME] [--from ISO] [--to ISO] [--logs DIR] [--json|--html] [--out FILE]
 
 TIMEFRAME (relative window ending now, UTC):
   30m, 12h, 48h, 7d, 2w  | today | yesterday   (default: 24h)
@@ -147,7 +147,8 @@ def ratecard_usd(model, a):
             + a["cache_write_tokens"] / 1e6 * rw + a["output_tokens"] / 1e6 * ro)
 
 
-def render(agg, counts, start, end, as_json=False):
+def compute(agg, counts):
+    """Aggregate per-model rows (sorted by spend) and a TOTAL summary."""
     rows = []
     tot = defaultdict(float)
     for model in sorted(agg, key=lambda m: -agg[m]["total_nano_aiu"]):
@@ -178,35 +179,152 @@ def render(agg, counts, start, end, as_json=False):
         "ai_units": round(tot["total_nano_aiu"] / 1e9, 2),
         "usd": round(tot["total_nano_aiu"] / 1e9 / 100, 2),
     }
-    if as_json:
-        print(json.dumps({"window_utc": {"from": start.isoformat(), "to": end.isoformat()},
-                          "by_model": rows, "total": total}, indent=2))
-        return
+    return rows, total
 
+
+def render_json(rows, total, start, end):
+    return json.dumps({"window_utc": {"from": start.isoformat(), "to": end.isoformat()},
+                       "by_model": rows, "total": total}, indent=2)
+
+
+def render_markdown(rows, total, start, end):
+    out = []
     cr_pct = (100 * total["cache_read_tokens"] / total["input_tokens"]) if total["input_tokens"] else 0
-    print(f"# Copilot CLI usage report")
-    print(f"\n**Window (UTC):** {start.strftime('%Y-%m-%d %H:%M')} → {end.strftime('%Y-%m-%d %H:%M')}")
-    print(f"**Basis:** 1 AI Unit = 1 GitHub AI credit = $0.01 USD (from telemetry `total_nano_aiu`).\n")
+    out.append("# Copilot CLI usage report")
+    out.append(f"\n**Window (UTC):** {start.strftime('%Y-%m-%d %H:%M')} → {end.strftime('%Y-%m-%d %H:%M')}")
+    out.append(f"**Basis:** 1 AI Unit = 1 GitHub AI credit = $0.01 USD (from telemetry `total_nano_aiu`).\n")
     if not rows:
-        print("_No assistant_usage events found in this window._")
-        return
-    print("| Model | Calls | Input | Cache-read | Cache-write | Output | Reasoning | AI Units | USD |")
-    print("|---|--:|--:|--:|--:|--:|--:|--:|--:|")
+        out.append("_No assistant_usage events found in this window._")
+        return "\n".join(out)
+    out.append("| Model | Calls | Input | Cache-read | Cache-write | Output | Reasoning | AI Units | USD |")
+    out.append("|---|--:|--:|--:|--:|--:|--:|--:|--:|")
     for r in rows:
-        print(f"| {r['model']} | {r['calls']} | {r['input_tokens']:,} | {r['cache_read_tokens']:,} | "
-              f"{r['cache_write_tokens']:,} | {r['output_tokens']:,} | {r['reasoning_tokens']:,} | "
-              f"{r['ai_units']:,.2f} | ${r['usd']:,.2f} |")
-    print(f"| **TOTAL** | **{total['calls']}** | **{total['input_tokens']:,}** | "
-          f"**{total['cache_read_tokens']:,}** | **{total['cache_write_tokens']:,}** | "
-          f"**{total['output_tokens']:,}** | **{total['reasoning_tokens']:,}** | "
-          f"**{total['ai_units']:,.2f}** | **${total['usd']:,.2f}** |")
-    print(f"\n- **Total cost: {total['ai_units']:,.2f} AI Units = ${total['usd']:,.2f}**")
-    print(f"- Cache-read share of input: **{cr_pct:.1f}%** "
-          f"({total['cache_read_tokens']:,} of {total['input_tokens']:,})")
-    if rows:
-        top = rows[0]
-        share = (100 * top["usd"] / total["usd"]) if total["usd"] else 0
-        print(f"- Top model: **{top['model']}** at ${top['usd']:,.2f} ({share:.0f}% of spend)")
+        out.append(f"| {r['model']} | {r['calls']} | {r['input_tokens']:,} | {r['cache_read_tokens']:,} | "
+                   f"{r['cache_write_tokens']:,} | {r['output_tokens']:,} | {r['reasoning_tokens']:,} | "
+                   f"{r['ai_units']:,.2f} | ${r['usd']:,.2f} |")
+    out.append(f"| **TOTAL** | **{total['calls']}** | **{total['input_tokens']:,}** | "
+               f"**{total['cache_read_tokens']:,}** | **{total['cache_write_tokens']:,}** | "
+               f"**{total['output_tokens']:,}** | **{total['reasoning_tokens']:,}** | "
+               f"**{total['ai_units']:,.2f}** | **${total['usd']:,.2f}** |")
+    out.append(f"\n- **Total cost: {total['ai_units']:,.2f} AI Units = ${total['usd']:,.2f}**")
+    out.append(f"- Cache-read share of input: **{cr_pct:.1f}%** "
+               f"({total['cache_read_tokens']:,} of {total['input_tokens']:,})")
+    top = rows[0]
+    share = (100 * top["usd"] / total["usd"]) if total["usd"] else 0
+    out.append(f"- Top model: **{top['model']}** at ${top['usd']:,.2f} ({share:.0f}% of spend)")
+    return "\n".join(out)
+
+
+def _esc(s):
+    return str(s).replace("&", "&amp;").replace("<", "&lt;").replace(">", "&gt;")
+
+
+HTML_CSS = """
+:root{--bg:#f6f7f9;--fg:#1c2530;--mut:#5b6675;--line:#e3e7ec;--card:#fff;--accent:#2563eb;--accent2:#7c3aed}
+*{box-sizing:border-box}
+body{margin:0;background:var(--bg);color:var(--fg);font:15px/1.5 -apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,Helvetica,Arial,sans-serif}
+.wrap{max-width:1080px;margin:0 auto;padding:32px 20px 56px}
+header h1{margin:0 0 4px;font-size:24px}
+.meta{color:var(--mut);font-size:13px;margin:0}
+.meta code{background:rgba(127,127,127,.14);padding:1px 5px;border-radius:5px;font-size:12px}
+.cards{display:grid;grid-template-columns:repeat(auto-fit,minmax(200px,1fr));gap:14px;margin:22px 0}
+.card{background:var(--card);border:1px solid var(--line);border-radius:12px;padding:16px}
+.card .k{color:var(--mut);font-size:12px;text-transform:uppercase;letter-spacing:.04em}
+.card .v{font-size:26px;font-weight:700;margin:6px 0 2px}
+.card .v.top{font-size:18px;word-break:break-word}
+.card .s{color:var(--mut);font-size:12px}
+.card.hero{background:linear-gradient(135deg,var(--accent),var(--accent2));border:0;color:#fff}
+.card.hero .k,.card.hero .s{color:rgba(255,255,255,.85)}
+table{width:100%;border-collapse:collapse;background:var(--card);border:1px solid var(--line);border-radius:12px;overflow:hidden;font-size:13px}
+th,td{padding:10px 12px;text-align:left;border-bottom:1px solid var(--line)}
+th{background:#fafbfc;font-size:11px;text-transform:uppercase;letter-spacing:.04em;color:var(--mut)}
+th.n,td.n{text-align:right;font-variant-numeric:tabular-nums}
+td.usd{font-weight:600}
+td.model{position:relative;font-weight:600;min-width:180px}
+td.model .bar{display:block;height:4px;margin-top:6px;width:var(--w);min-width:2px;background:linear-gradient(90deg,var(--accent),var(--accent2));border-radius:3px}
+tr.total td{font-weight:700;background:#fafbfc;border-bottom:0}
+td.empty{text-align:center;color:var(--mut);padding:28px}
+footer{color:var(--mut);font-size:12px;margin-top:18px}
+@media(prefers-color-scheme:dark){:root{--bg:#0f1419;--fg:#e6e9ee;--mut:#9aa4b2;--line:#222a33;--card:#161c23}th,tr.total td{background:#12181f}.card .v{color:#fff}}
+"""
+
+
+def render_html(rows, total, start, end):
+    cr_pct = (100 * total["cache_read_tokens"] / total["input_tokens"]) if total["input_tokens"] else 0
+    window = f"{start.strftime('%Y-%m-%d %H:%M')} \u2192 {end.strftime('%Y-%m-%d %H:%M')} UTC"
+    generated = datetime.now(timezone.utc).strftime("%Y-%m-%d %H:%M UTC")
+    top = rows[0] if rows else None
+    top_share = (100 * top["usd"] / total["usd"]) if (top and total["usd"]) else 0
+
+    cards = f"""
+      <div class="cards">
+        <div class="card hero">
+          <div class="k">Total cost</div>
+          <div class="v">${total['usd']:,.2f}</div>
+          <div class="s">{total['ai_units']:,.2f} AI Units</div>
+        </div>
+        <div class="card">
+          <div class="k">Calls</div>
+          <div class="v">{total['calls']:,}</div>
+          <div class="s">across {len(rows)} model{'s' if len(rows) != 1 else ''}</div>
+        </div>
+        <div class="card">
+          <div class="k">Cache-read share</div>
+          <div class="v">{cr_pct:.1f}%</div>
+          <div class="s">{total['cache_read_tokens']:,} of {total['input_tokens']:,} input</div>
+        </div>
+        <div class="card">
+          <div class="k">Top model</div>
+          <div class="v top">{_esc(top['model']) if top else '&mdash;'}</div>
+          <div class="s">${top['usd']:,.2f} &middot; {top_share:.0f}% of spend</div>
+        </div>
+      </div>""" if rows else ""
+
+    trows = []
+    for r in rows:
+        share = (100 * r["usd"] / total["usd"]) if total["usd"] else 0
+        trows.append(
+            "<tr>"
+            f"<td class='model'>{_esc(r['model'])}"
+            f"<span class='bar' style='--w:{share:.1f}%'></span></td>"
+            f"<td class='n'>{r['calls']:,}</td>"
+            f"<td class='n'>{r['input_tokens']:,}</td>"
+            f"<td class='n'>{r['cache_read_tokens']:,}</td>"
+            f"<td class='n'>{r['cache_write_tokens']:,}</td>"
+            f"<td class='n'>{r['output_tokens']:,}</td>"
+            f"<td class='n'>{r['reasoning_tokens']:,}</td>"
+            f"<td class='n'>{r['ai_units']:,.2f}</td>"
+            f"<td class='n usd'>${r['usd']:,.2f}</td>"
+            "</tr>")
+    body_rows = "\n".join(trows) if trows else (
+        "<tr><td colspan='9' class='empty'>No assistant_usage events found in this window.</td></tr>")
+    total_row = (
+        "<tr class='total'><td>TOTAL</td>"
+        f"<td class='n'>{total['calls']:,}</td>"
+        f"<td class='n'>{total['input_tokens']:,}</td>"
+        f"<td class='n'>{total['cache_read_tokens']:,}</td>"
+        f"<td class='n'>{total['cache_write_tokens']:,}</td>"
+        f"<td class='n'>{total['output_tokens']:,}</td>"
+        f"<td class='n'>{total['reasoning_tokens']:,}</td>"
+        f"<td class='n'>{total['ai_units']:,.2f}</td>"
+        f"<td class='n usd'>${total['usd']:,.2f}</td></tr>") if rows else ""
+
+    return (
+        "<!doctype html>\n<html lang=\"en\">\n<head>\n<meta charset=\"utf-8\">\n"
+        "<meta name=\"viewport\" content=\"width=device-width, initial-scale=1\">\n"
+        "<title>Copilot CLI usage report</title>\n<style>" + HTML_CSS + "</style>\n</head>\n"
+        "<body>\n<div class=\"wrap\">\n<header>\n<h1>Copilot CLI usage report</h1>\n"
+        f"<p class=\"meta\">Window: {_esc(window)} &middot; 1 AI Unit = 1 GitHub AI credit = $0.01 USD "
+        "(from telemetry <code>total_nano_aiu</code>)</p>\n</header>\n"
+        + cards +
+        "\n<table>\n<thead><tr>"
+        "<th>Model</th><th class='n'>Calls</th><th class='n'>Input</th><th class='n'>Cache-read</th>"
+        "<th class='n'>Cache-write</th><th class='n'>Output</th><th class='n'>Reasoning</th>"
+        "<th class='n'>AI Units</th><th class='n'>USD</th>"
+        "</tr></thead>\n<tbody>\n" + body_rows + "\n" + total_row + "\n</tbody>\n</table>\n"
+        f"<footer>Generated {generated} &middot; self-contained &amp; offline. "
+        "AI Units from telemetry are authoritative; rate-card USD is a cross-check only.</footer>\n"
+        "</div>\n</body>\n</html>\n")
 
 
 def main():
@@ -218,12 +336,26 @@ def main():
     p.add_argument("--logs", default=os.path.expanduser("~/.copilot/logs"),
                    help="log directory (default ~/.copilot/logs)")
     p.add_argument("--json", action="store_true", help="emit JSON instead of markdown")
+    p.add_argument("--html", action="store_true", help="emit a self-contained HTML report")
+    p.add_argument("--out", help="write the report to a file instead of stdout")
     args = p.parse_args()
     start, end = parse_window(args)
     if not os.path.isdir(args.logs):
         sys.exit(f"Log directory not found: {args.logs}")
     agg, counts = aggregate(args.logs, start, end)
-    render(agg, counts, start, end, as_json=args.json)
+    rows, total = compute(agg, counts)
+    if args.json:
+        text = render_json(rows, total, start, end)
+    elif args.html:
+        text = render_html(rows, total, start, end)
+    else:
+        text = render_markdown(rows, total, start, end)
+    if args.out:
+        with open(args.out, "w", encoding="utf-8") as f:
+            f.write(text if text.endswith("\n") else text + "\n")
+        print(f"Wrote {args.out}")
+    else:
+        print(text)
 
 
 if __name__ == "__main__":
